@@ -271,9 +271,20 @@
     header.top, .formcol, .previewcol, dialog#howItWorksDialog, .bottom-bar { display: none !important; }
     body, .layout { background: #fff !important; display: block !important; padding: 0 !important; margin: 0 !important; border: none !important; }
     #printArea { display: block !important; }
+    /* Rather than hand-tune a separate print font-size (which drifts
+       out of sync with the on-screen design every time that changes,
+       and previously only rescaled the base font-size while every
+       descendant's own px sizes/paddings/margins stayed unscaled --
+       the actual cause of the too-small, sparse-looking print output),
+       keep the sheet at its on-screen 440px design width and use zoom
+       to scale that whole design uniformly up to the real 8.5in page
+       width. Every descendant's font-size, padding, margin, and gap
+       scales together automatically, so print always matches the
+       on-screen preview's proportions exactly. */
     #printArea .sheet {
-      width: 8.5in; min-height: 11in; max-width: none; box-shadow: none; border-radius: 0;
-      page-break-after: always; break-after: page; font-size: 11px;
+      width: 440px; max-width: 440px; zoom: 1.8545;
+      box-shadow: none; border-radius: 0;
+      page-break-after: always; break-after: page;
     }
     /* Attached exam pages are interleaved with .sheet elements (one
        coversheet, then that student's exam pages, then the next
