@@ -161,8 +161,14 @@
   table.students tr:last-child td { border-bottom: none; }
   table.students input, table.students select { padding: 5px 6px; font-size: 12.5px; }
   table.students input[type="text"], table.students input[type="date"], table.students input[type="number"] { min-width: 84px; }
-  .date-wrap { display: flex; flex-direction: column; gap: 2px; }
-  .date-wrap .day-label { font-size: 10px; font-weight: 600; color: var(--ink-faint); letter-spacing: 0.03em; padding-left: 2px; }
+  .date-wrap { display: flex; align-items: center; gap: 5px; }
+  .date-wrap .day-label {
+    font-size: 10.5px; font-weight: 700; color: var(--ink-faint); letter-spacing: 0.02em;
+    flex: 0 0 auto; width: 2.4em; text-align: right;
+  }
+  .date-wrap .holiday-flag {
+    flex: 0 0 auto; font-size: 13px; cursor: help; line-height: 1;
+  }
   td.name-cell input { min-width: 150px; }
   td.remove-cell { text-align: center; }
 
@@ -540,18 +546,28 @@
       var dateTd = document.createElement("td");
       var dateWrap = document.createElement("div");
       dateWrap.className = "date-wrap";
-      var dateInput = document.createElement("input");
-      dateInput.type = "date"; dateInput.value = s.date;
       var dayLabel = document.createElement("span");
       dayLabel.className = "day-label";
-      dayLabel.textContent = dayAbbrev(s.date);
+      var dateInput = document.createElement("input");
+      dateInput.type = "date"; dateInput.value = s.date;
+      var holidayFlag = document.createElement("span");
+      holidayFlag.className = "holiday-flag";
+      holidayFlag.textContent = "⚠";
+      function refreshDateExtras() {
+        dayLabel.textContent = dayAbbrev(s.date);
+        var holiday = checkNoSchoolHoliday(s.date);
+        holidayFlag.hidden = !holiday;
+        if (holiday) holidayFlag.title = holiday + ". School is likely closed, double check before scheduling here.";
+      }
       dateInput.addEventListener("input", function () {
         s.date = dateInput.value;
-        dayLabel.textContent = dayAbbrev(s.date);
+        refreshDateExtras();
         renderPreview();
       });
-      dateWrap.appendChild(dateInput);
+      refreshDateExtras();
       dateWrap.appendChild(dayLabel);
+      dateWrap.appendChild(dateInput);
+      dateWrap.appendChild(holidayFlag);
       dateTd.appendChild(dateWrap);
       tr.appendChild(dateTd);
 
@@ -669,6 +685,89 @@
     renderStudentsTable();
     renderPreview();
   });
+
+  // -----------------------------------------------------------------
+  // "Likely no school" flag -- federal holidays (computed by rule, any
+  // year) plus Rosh Hashanah / Yom Kippur / Eid al-Fitr / Eid al-Adha
+  // (looked up; these move every year on the Hebrew/Islamic calendars
+  // and aren't computable from a simple formula, so only the years
+  // below have data -- add more rows as they're published). Islamic
+  // dates are especially approximate: they're set by moon sighting and
+  // can shift a day either way from these projections.
+  // -----------------------------------------------------------------
+  var LUNAR_HOLIDAYS = {
+    "2026-09-11": "Rosh Hashanah", "2026-09-12": "Rosh Hashanah", "2026-09-13": "Rosh Hashanah",
+    "2026-09-20": "Yom Kippur", "2026-09-21": "Yom Kippur",
+    "2026-03-20": "Eid al-Fitr",
+    "2026-05-27": "Eid al-Adha",
+
+    "2027-10-01": "Rosh Hashanah", "2027-10-02": "Rosh Hashanah", "2027-10-03": "Rosh Hashanah",
+    "2027-10-10": "Yom Kippur", "2027-10-11": "Yom Kippur",
+    "2027-03-09": "Eid al-Fitr",
+    "2027-05-16": "Eid al-Adha",
+
+    "2028-09-20": "Rosh Hashanah", "2028-09-21": "Rosh Hashanah", "2028-09-22": "Rosh Hashanah",
+    "2028-09-29": "Yom Kippur", "2028-09-30": "Yom Kippur",
+    "2028-02-26": "Eid al-Fitr",
+    "2028-05-05": "Eid al-Adha",
+
+    "2029-09-09": "Rosh Hashanah", "2029-09-10": "Rosh Hashanah", "2029-09-11": "Rosh Hashanah",
+    "2029-09-18": "Yom Kippur", "2029-09-19": "Yom Kippur",
+    "2029-02-14": "Eid al-Fitr",
+    "2029-04-24": "Eid al-Adha",
+
+    "2030-09-27": "Rosh Hashanah", "2030-09-28": "Rosh Hashanah", "2030-09-29": "Rosh Hashanah",
+    "2030-10-06": "Yom Kippur", "2030-10-07": "Yom Kippur",
+    "2030-02-05": "Eid al-Fitr",
+    "2030-04-13": "Eid al-Adha"
+  };
+
+  function pad2(n) { return n < 10 ? "0" + n : String(n); }
+  function isoOfLocal(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+  // nth (1-based) weekday (0=Sun..6=Sat) of a given month (0-11).
+  function nthWeekday(year, month, weekday, n) {
+    var first = new Date(year, month, 1);
+    var offset = (weekday - first.getDay() + 7) % 7;
+    return new Date(year, month, 1 + offset + (n - 1) * 7);
+  }
+  function lastWeekday(year, month, weekday) {
+    var last = new Date(year, month + 1, 0);
+    var offset = (last.getDay() - weekday + 7) % 7;
+    return new Date(year, month, last.getDate() - offset);
+  }
+  // Federal observance shifts a Sat holiday to Fri and a Sun holiday to Mon.
+  function observedFixed(year, month, day) {
+    var d = new Date(year, month, day);
+    if (d.getDay() === 6) return new Date(year, month, day - 1);
+    if (d.getDay() === 0) return new Date(year, month, day + 1);
+    return d;
+  }
+  function federalHolidaysForYear(year) {
+    return [
+      [isoOfLocal(observedFixed(year, 0, 1)), "New Year's Day"],
+      [isoOfLocal(nthWeekday(year, 0, 1, 3)), "Martin Luther King Jr. Day"],
+      [isoOfLocal(nthWeekday(year, 1, 1, 3)), "Presidents Day"],
+      [isoOfLocal(lastWeekday(year, 4, 1)), "Memorial Day"],
+      [isoOfLocal(observedFixed(year, 5, 19)), "Juneteenth"],
+      [isoOfLocal(observedFixed(year, 6, 4)), "Independence Day"],
+      [isoOfLocal(nthWeekday(year, 8, 1, 1)), "Labor Day"],
+      [isoOfLocal(nthWeekday(year, 9, 1, 2)), "Columbus Day"],
+      [isoOfLocal(observedFixed(year, 10, 11)), "Veterans Day"],
+      [isoOfLocal(nthWeekday(year, 10, 4, 4)), "Thanksgiving"],
+      [isoOfLocal(observedFixed(year, 11, 25)), "Christmas Day"]
+    ];
+  }
+  function checkNoSchoolHoliday(iso) {
+    if (!iso) return null;
+    if (LUNAR_HOLIDAYS[iso]) return LUNAR_HOLIDAYS[iso];
+    var year = parseInt(iso.slice(0, 4), 10);
+    if (isNaN(year)) return null;
+    var feds = federalHolidaysForYear(year);
+    for (var i = 0; i < feds.length; i++) {
+      if (feds[i][0] === iso) return feds[i][1];
+    }
+    return null;
+  }
 
   // -----------------------------------------------------------------
   // Coversheet rendering (shared by live preview + print)
