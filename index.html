@@ -204,6 +204,11 @@
     display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 16px;
   }
   .sheet-nav .num { color: var(--ink-soft); font-size: 12.5px; min-width: 9ch; text-align: center; }
+  .attach-info { display: flex; align-items: center; gap: 10px; }
+  .attach-badge {
+    margin-top: 10px; font-size: 12px; color: var(--ink-soft); background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px; text-align: center;
+  }
   .empty-note {
     font-size: 13px; color: var(--ink-faint); border: 1px dashed var(--line-strong); border-radius: 8px;
     padding: 22px; text-align: center;
@@ -270,7 +275,15 @@
       width: 8.5in; min-height: 11in; max-width: none; box-shadow: none; border-radius: 0;
       page-break-after: always; break-after: page; font-size: 11px;
     }
-    #printArea .sheet:last-child { page-break-after: auto; break-after: auto; }
+    /* Attached exam pages are interleaved with .sheet elements (one
+       coversheet, then that student's exam pages, then the next
+       student's coversheet...), so a CSS :last-child rule can't
+       reliably identify "the truly last printed page" the way it
+       could when every printed element was a .sheet -- that's set
+       directly in JS instead, on whatever element actually ends up
+       last. */
+    #printArea .attach-page-print { width: 8.5in; page-break-after: always; break-after: page; }
+    #printArea .attach-page-print img { width: 100%; display: block; }
   }
 </style>
 
@@ -297,7 +310,7 @@
     <p>This is one self-contained page. The form, the coversheet layout, and the printing logic are all plain HTML, CSS, and JavaScript running in your browser tab. There's no server, so nothing you type is sent anywhere. "Print all coversheets" just opens your browser's own print dialog, which is also how "Save as PDF" works without this tool generating a PDF itself.</p>
 
     <h3>Student data</h3>
-    <p>Everything you enter lives only in this tab's memory while it's open. Nothing is uploaded, logged, or retained. Reload or close the tab and it's gone.</p>
+    <p>Everything you enter lives only in this tab's memory while it's open. Nothing is uploaded, logged, or retained. Reload or close the tab and it's gone. The same applies to an attached exam PDF: it's read and rendered by a library (pdf.js) running in your browser, never sent anywhere.</p>
 
     <h3>Source code</h3>
     <p>The code is one file, published on GitHub: <a id="sourceRepoLink" href="https://github.com/jakegoldwasser/testing-center-coversheets" target="_blank" rel="noopener">github.com/jakegoldwasser/testing-center-coversheets</a>. It also runs live from that repo via GitHub Pages: <a href="https://jakegoldwasser.github.io/testing-center-coversheets/" target="_blank" rel="noopener">jakegoldwasser.github.io/testing-center-coversheets</a>.</p>
@@ -408,6 +421,18 @@
     </div>
 
     <div class="panel">
+      <div class="panel-title">Attach assessment <span class="optional-tag">(optional)</span></div>
+      <div class="preview-note" style="margin-bottom:10px;">Attach a PDF of the test and its pages print right after each student's coversheet, as part of the same stack. Read entirely in your browser via pdf.js, never uploaded anywhere.</div>
+      <div id="attachIdle">
+        <input type="file" id="f-attach-pdf" accept="application/pdf">
+      </div>
+      <div id="attachInfo" class="attach-info" hidden>
+        <span id="attachName" class="num"></span>
+        <button class="btn btn-ghost btn-sm" id="attachRemoveBtn" type="button">Remove</button>
+      </div>
+    </div>
+
+    <div class="panel">
       <div class="panel-title">Students</div>
       <div class="students-table-wrap">
         <table class="students">
@@ -421,6 +446,7 @@
               <th>Accommodations</th>
               <th>Same-day make-up</th>
               <th>Time already spent</th>
+              <th>Notes</th>
               <th></th>
             </tr>
           </thead>
@@ -464,7 +490,7 @@
     return {
       id: makeId(), name: "", grade: "9", date: todayISO(),
       startPeriod: "A", addPeriod: "", accommodations: false, extraTime: "1.5x", makeup: false,
-      timeSpent: "0"
+      timeSpent: "0", notes: ""
     };
   }
 
@@ -479,9 +505,10 @@
     isExamNet: true, examName: "", examCode: "",
     enCopy: false, enTimeLimit: false, enCoTeacher: false,
     splitConsecutive: false, splitOnePage: false, splitNoReturn: false, split: "",
+    examAttachment: null,
     students: [
       { id: makeId(), name: "Caspian C.", grade: "9", date: todayISO(), startPeriod: "A",
-        addPeriod: "", accommodations: false, extraTime: "1.5x", makeup: false, timeSpent: "0" }
+        addPeriod: "", accommodations: false, extraTime: "1.5x", makeup: false, timeSpent: "0", notes: "" }
     ]
   };
 
@@ -562,6 +589,57 @@
   wireCheck("f-split-consecutive", "splitConsecutive");
   wireCheck("f-split-onepage", "splitOnePage");
   wireCheck("f-split-noreturn", "splitNoReturn");
+
+  // -----------------------------------------------------------------
+  // Attach assessment -- read a PDF entirely client-side (pdf.js,
+  // loaded on demand) and render each page to an image. Nothing is
+  // uploaded; the file never leaves this tab. Those images get
+  // spliced into the print output right after each student's
+  // coversheet -- see buildPrintNodes().
+  // -----------------------------------------------------------------
+  var attachInput = document.getElementById("f-attach-pdf");
+  var attachIdle = document.getElementById("attachIdle");
+  var attachInfo = document.getElementById("attachInfo");
+  var attachName = document.getElementById("attachName");
+
+  attachInput.addEventListener("change", async function () {
+    var file = attachInput.files[0];
+    if (!file) return;
+    attachIdle.hidden = true;
+    attachInfo.hidden = false;
+    attachName.textContent = "Reading " + file.name + "…";
+    try {
+      var pdfjsLib = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.3.289/pdf.min.mjs");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/6.3.289/pdf.worker.min.mjs";
+      var buf = await file.arrayBuffer();
+      var doc = await pdfjsLib.getDocument({ data: buf }).promise;
+      var pages = [];
+      for (var i = 1; i <= doc.numPages; i++) {
+        attachName.textContent = "Reading " + file.name + "… (page " + i + " of " + doc.numPages + ")";
+        var page = await doc.getPage(i);
+        var viewport = page.getViewport({ scale: 1.8 });
+        var canvas = document.createElement("canvas");
+        canvas.width = viewport.width; canvas.height = viewport.height;
+        var ctx = canvas.getContext("2d");
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+        pages.push(canvas.toDataURL("image/jpeg", 0.9));
+      }
+      state.examAttachment = { fileName: file.name, pages: pages };
+      attachName.textContent = file.name + " (" + pages.length + (pages.length === 1 ? " page)" : " pages)");
+    } catch (err) {
+      state.examAttachment = null;
+      attachName.textContent = "Couldn't read that PDF.";
+    }
+    renderPreview();
+  });
+
+  document.getElementById("attachRemoveBtn").addEventListener("click", function () {
+    state.examAttachment = null;
+    attachInput.value = "";
+    attachIdle.hidden = false;
+    attachInfo.hidden = true;
+    renderPreview();
+  });
 
   // -----------------------------------------------------------------
   // Students table
@@ -645,6 +723,13 @@
       tsInput.addEventListener("input", function () { s.timeSpent = tsInput.value; renderPreview(); });
       tsTd.appendChild(tsInput);
       tr.appendChild(tsTd);
+
+      var notesTd = document.createElement("td");
+      var notesInput = document.createElement("input");
+      notesInput.type = "text"; notesInput.placeholder = "optional"; notesInput.value = s.notes; notesInput.style.width = "120px";
+      notesInput.addEventListener("input", function () { s.notes = notesInput.value; renderPreview(); });
+      notesTd.appendChild(notesInput);
+      tr.appendChild(notesTd);
 
       var rmTd = document.createElement("td");
       rmTd.className = "remove-cell";
@@ -869,6 +954,7 @@
         sfRow("Starting period", esc(s.startPeriod)) +
         sfRow("Additional period", esc(s.addPeriod) || "&nbsp;") +
       '</div>' +
+      (s.notes && s.notes.trim() ? sfRow("Notes", esc(s.notes.trim())) : "") +
       '<div class="sf-warn">Students must take assessments during assigned period(s) only</div>' +
       '<hr class="sf-rule">' +
       sfRow("Subject", esc(state.subject) || "&nbsp;") +
@@ -923,6 +1009,42 @@
   prevSheetBtn.addEventListener("click", function () { previewIndex--; renderPreview(); });
   nextSheetBtn.addEventListener("click", function () { previewIndex++; renderPreview(); });
 
+  // One coversheet per student, plus -- if a PDF is attached -- that
+  // PDF's pages immediately after each student's coversheet, so the
+  // stack prints as ready-to-hand-out packets. Shared by the print
+  // area and the total-page count; the on-screen pager still only
+  // leafs through coversheets (the attached pages are identical for
+  // every student, so a small badge on the preview says how many will
+  // follow rather than paging through duplicates).
+  function attachedPageCount() {
+    return state.examAttachment ? state.examAttachment.pages.length : 0;
+  }
+  function buildPrintNodes() {
+    var nodes = [];
+    state.students.forEach(function (s) {
+      nodes.push(buildSheetEl(s));
+      if (state.examAttachment) {
+        state.examAttachment.pages.forEach(function (url) {
+          var div = document.createElement("div");
+          div.className = "attach-page-print";
+          var img = document.createElement("img");
+          img.src = url;
+          div.appendChild(img);
+          nodes.push(div);
+        });
+      }
+    });
+    return nodes;
+  }
+  function fillPrintArea() {
+    printArea.innerHTML = "";
+    buildPrintNodes().forEach(function (node) { printArea.appendChild(node); });
+    // Interleaving coversheets with attachment pages means the last
+    // printed element isn't reliably a .sheet anymore, so a CSS
+    // :last-child rule can't target it -- force it here instead.
+    if (printArea.lastElementChild) printArea.lastElementChild.style.pageBreakAfter = "auto";
+  }
+
   function renderPreview() {
     var n = state.students.length;
     previewIndex = Math.max(0, Math.min(previewIndex, n - 1));
@@ -933,23 +1055,27 @@
     } else {
       previewStack.appendChild(buildSheetEl(state.students[previewIndex]));
       sheetPager.textContent = (previewIndex + 1) + " of " + n;
+      if (state.examAttachment) {
+        var badge = document.createElement("div");
+        badge.className = "attach-badge";
+        var ap = attachedPageCount();
+        badge.textContent = "+ " + ap + (ap === 1 ? " exam page prints" : " exam pages print") + " after this coversheet";
+        previewStack.appendChild(badge);
+      }
     }
     prevSheetBtn.disabled = previewIndex <= 0;
     nextSheetBtn.disabled = previewIndex >= n - 1;
 
-    printArea.innerHTML = "";
-    state.students.forEach(function (s) { printArea.appendChild(buildSheetEl(s)); });
+    fillPrintArea();
 
+    var totalPages = n * (1 + attachedPageCount());
     studentCountEl.textContent = n;
     studentWordEl.textContent = n === 1 ? "student" : "students";
-    pageWordEl.textContent = n + (n === 1 ? " page" : " pages");
-    bottomCountLabel.textContent = n + (n === 1 ? " student · " : " students · ") + n + (n === 1 ? " page" : " pages");
+    pageWordEl.textContent = totalPages + (totalPages === 1 ? " page" : " pages");
+    bottomCountLabel.textContent = n + (n === 1 ? " student · " : " students · ") + totalPages + (totalPages === 1 ? " page" : " pages");
   }
 
-  window.addEventListener("beforeprint", function () {
-    printArea.innerHTML = "";
-    state.students.forEach(function (s) { printArea.appendChild(buildSheetEl(s)); });
-  });
+  window.addEventListener("beforeprint", fillPrintArea);
 
   document.getElementById("printAllBtn").addEventListener("click", function () {
     if (!state.students.length) return;
