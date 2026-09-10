@@ -80,6 +80,13 @@
   .btn-ghost { background: transparent; border-color: transparent; padding: 4px 8px; }
   .btn-ghost:hover { background: var(--surface-2); }
   .btn-sm { padding: 4px 9px; font-size: 12px; }
+  .btn-lg { padding: 12px 30px; font-size: 15px; }
+
+  .bottom-bar {
+    display: flex; align-items: center; justify-content: center; gap: 20px;
+    padding: 22px 28px; border-top: 2px solid var(--maroon); background: var(--surface);
+  }
+  .bottom-bar .num { color: var(--ink-soft); font-size: 13px; }
 
   header.top {
     display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
@@ -223,7 +230,7 @@
   #printArea { display: none; }
 
   @media print {
-    header.top, .formcol, .previewcol > h2, .previewcol > .preview-note, .empty-note, dialog#howItWorksDialog { display: none !important; }
+    header.top, .formcol, .previewcol > h2, .previewcol > .preview-note, .empty-note, dialog#howItWorksDialog, .bottom-bar { display: none !important; }
     body, .layout, .previewcol { background: #fff !important; display: block !important; padding: 0 !important; margin: 0 !important; border: none !important; }
     #printArea { display: block !important; }
     #printArea .sheet {
@@ -243,7 +250,6 @@
   <div class="count">
     <strong id="studentCount" class="num">0</strong> <span id="studentWord">students</span> queued · <span id="pageWord">0 pages</span> to print
     &nbsp; <button class="btn btn-ghost" id="howItWorksBtn" type="button">How this works</button>
-    <button class="btn btn-primary" id="printAllBtn" type="button">Print all coversheets</button>
   </div>
 </header>
 
@@ -255,13 +261,13 @@
     </div>
 
     <h3>What runs where</h3>
-    <p>This entire tool is one self-contained web page — the form, the coversheet layout, and printing logic are all plain HTML/CSS/JavaScript running in your browser tab. There is no server: nothing you type is sent anywhere, not to a database, not to Anthropic or Claude, not anywhere else. "Print all coversheets" just calls your browser's own native print dialog on the page as currently rendered, which is also how "Save as PDF" gets you a PDF without this tool needing to generate one itself.</p>
+    <p>This is one self-contained page. The form, the coversheet layout, and the printing logic are all plain HTML, CSS, and JavaScript running in your browser tab. There's no server, so nothing you type is sent anywhere. "Print all coversheets" just opens your browser's own print dialog, which is also how "Save as PDF" works without this tool generating a PDF itself.</p>
 
-    <h3>What that means for student data</h3>
-    <p>Names, grades, accommodation flags, and everything else you enter live only in this browser tab's memory for as long as the tab is open. Nothing is uploaded, logged, or retained anywhere — reload the page or close the tab and it's gone. That also means there's nothing to lose track of after you're done printing: no residual copy sitting on a server somewhere.</p>
+    <h3>Student data</h3>
+    <p>Everything you enter lives only in this tab's memory while it's open. Nothing is uploaded, logged, or retained. Reload or close the tab and it's gone.</p>
 
-    <h3>Full source code</h3>
-    <p>Every line of code that runs on this page is in one file, published on its own GitHub repo: <a id="sourceRepoLink" href="https://github.com/jakegoldwasser/testing-center-coversheets" target="_blank" rel="noopener">github.com/jakegoldwasser/testing-center-coversheets</a>. A live copy also runs straight from that repo via GitHub Pages: <a href="https://jakegoldwasser.github.io/testing-center-coversheets/" target="_blank" rel="noopener">jakegoldwasser.github.io/testing-center-coversheets</a>. Open the source and you're reading exactly what ran in your browser — there's no separate, hidden build.</p>
+    <h3>Source code</h3>
+    <p>The code is one file, published on GitHub: <a id="sourceRepoLink" href="https://github.com/jakegoldwasser/testing-center-coversheets" target="_blank" rel="noopener">github.com/jakegoldwasser/testing-center-coversheets</a>. It also runs live from that repo via GitHub Pages: <a href="https://jakegoldwasser.github.io/testing-center-coversheets/" target="_blank" rel="noopener">jakegoldwasser.github.io/testing-center-coversheets</a>.</p>
   </div>
 </dialog>
 
@@ -371,6 +377,11 @@
     <div class="preview-note">Exactly what prints — one coversheet per student, in order.</div>
     <div class="sheet-stack" id="previewStack"></div>
   </div>
+</div>
+
+<div class="bottom-bar">
+  <span id="bottomCountLabel" class="num">0 students · 0 pages</span>
+  <button class="btn btn-primary btn-lg" id="printAllBtn" type="button">Print all coversheets</button>
 </div>
 
 <div id="printArea"></div>
@@ -662,6 +673,7 @@
   var studentCountEl = document.getElementById("studentCount");
   var studentWordEl = document.getElementById("studentWord");
   var pageWordEl = document.getElementById("pageWord");
+  var bottomCountLabel = document.getElementById("bottomCountLabel");
 
   function renderPreview() {
     previewStack.innerHTML = "";
@@ -676,6 +688,8 @@
     studentCountEl.textContent = state.students.length;
     studentWordEl.textContent = state.students.length === 1 ? "student" : "students";
     pageWordEl.textContent = state.students.length + (state.students.length === 1 ? " page" : " pages");
+    bottomCountLabel.textContent = state.students.length + (state.students.length === 1 ? " student · " : " students · ") +
+      state.students.length + (state.students.length === 1 ? " page" : " pages");
   }
 
   window.addEventListener("beforeprint", function () {
