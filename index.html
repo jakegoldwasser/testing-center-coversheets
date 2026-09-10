@@ -242,8 +242,15 @@
   #printArea { display: none; }
 
   @media print {
-    header.top, .formcol, .previewcol > h2, .previewcol > .preview-note, .sheet-nav, .empty-note, dialog#howItWorksDialog, .bottom-bar { display: none !important; }
-    body, .layout, .previewcol { background: #fff !important; display: block !important; padding: 0 !important; margin: 0 !important; border: none !important; }
+    /* Nothing from the on-screen app UI should print -- only #printArea
+       (a sibling of .layout, built fresh from every student) does.
+       .previewcol must be hidden as a whole, not piecemeal: it was
+       previously hidden only child-by-child (h2, .preview-note,
+       .sheet-nav), which missed #previewStack itself -- the one sheet
+       currently shown on screen -- and let it print small and
+       unstyled ahead of the real, correctly-sized pages. */
+    header.top, .formcol, .previewcol, dialog#howItWorksDialog, .bottom-bar { display: none !important; }
+    body, .layout { background: #fff !important; display: block !important; padding: 0 !important; margin: 0 !important; border: none !important; }
     #printArea { display: block !important; }
     #printArea .sheet {
       width: 8.5in; min-height: 11in; max-width: none; box-shadow: none; border-radius: 0;
