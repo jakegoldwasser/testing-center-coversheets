@@ -161,6 +161,8 @@
   table.students tr:last-child td { border-bottom: none; }
   table.students input, table.students select { padding: 5px 6px; font-size: 12.5px; }
   table.students input[type="text"], table.students input[type="date"], table.students input[type="number"] { min-width: 84px; }
+  .date-wrap { display: flex; flex-direction: column; gap: 2px; }
+  .date-wrap .day-label { font-size: 10px; font-weight: 600; color: var(--ink-faint); letter-spacing: 0.03em; padding-left: 2px; }
   td.name-cell input { min-width: 150px; }
   td.remove-cell { text-align: center; }
 
@@ -173,11 +175,21 @@
   .yn-toggle button.active-no { background: var(--surface-2); color: var(--ink); }
   .yn-toggle button.active-yes { background: var(--attn); color: #1C1B19; }
 
+  .accommodations-cell { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  select.extra-time-sel {
+    padding: 3px 5px; font-size: 11px; border-color: var(--attn); background: var(--attn-soft); color: var(--ink);
+    width: auto; min-width: 0;
+  }
+
   .add-row-btn { margin-top: 14px; }
 
   .previewcol h2 { font-size: 15px; margin-bottom: 4px; }
   .previewcol .preview-note { font-size: 12px; color: var(--ink-soft); margin-bottom: 16px; }
-  .sheet-stack { display: flex; flex-direction: column; gap: 22px; align-items: center; }
+  .sheet-stack { display: flex; flex-direction: column; align-items: center; }
+  .sheet-nav {
+    display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 16px;
+  }
+  .sheet-nav .num { color: var(--ink-soft); font-size: 12.5px; min-width: 9ch; text-align: center; }
   .empty-note {
     font-size: 13px; color: var(--ink-faint); border: 1px dashed var(--line-strong); border-radius: 8px;
     padding: 22px; text-align: center;
@@ -230,7 +242,7 @@
   #printArea { display: none; }
 
   @media print {
-    header.top, .formcol, .previewcol > h2, .previewcol > .preview-note, .empty-note, dialog#howItWorksDialog, .bottom-bar { display: none !important; }
+    header.top, .formcol, .previewcol > h2, .previewcol > .preview-note, .sheet-nav, .empty-note, dialog#howItWorksDialog, .bottom-bar { display: none !important; }
     body, .layout, .previewcol { background: #fff !important; display: block !important; padding: 0 !important; margin: 0 !important; border: none !important; }
     #printArea { display: block !important; }
     #printArea .sheet {
@@ -374,7 +386,12 @@
 
   <div class="previewcol">
     <h2>Print preview</h2>
-    <div class="preview-note">Exactly what prints — one coversheet per student, in order.</div>
+    <div class="preview-note">Exactly what prints, one coversheet per student.</div>
+    <div class="sheet-nav">
+      <button class="btn btn-sm" id="prevSheetBtn" type="button">‹ Prev</button>
+      <span id="sheetPager" class="num">0 of 0</span>
+      <button class="btn btn-sm" id="nextSheetBtn" type="button">Next ›</button>
+    </div>
     <div class="sheet-stack" id="previewStack"></div>
   </div>
 </div>
@@ -398,7 +415,7 @@
   function newStudent() {
     return {
       id: makeId(), name: "", grade: "9", date: todayISO(),
-      startPeriod: "A", addPeriod: "", accommodations: false, makeup: false,
+      startPeriod: "A", addPeriod: "", accommodations: false, extraTime: "1.5x", makeup: false,
       timeSpent: "0", resumeKey: ""
     };
   }
@@ -408,10 +425,7 @@
     timeGiven: "45", email: "", ext: "",
     siTextbook: true, siNotes: false, siCalc: false, siOtherOn: false, siOther: "",
     isExamNet: true, examCode: "", split: "",
-    students: [
-      { id: makeId(), name: "Jordan Rivera", grade: "10", date: todayISO(), startPeriod: "C",
-        addPeriod: "", accommodations: false, makeup: false, timeSpent: "0", resumeKey: "" }
-    ]
+    students: []
   };
 
   // -----------------------------------------------------------------
@@ -514,10 +528,21 @@
       tr.appendChild(gradeTd);
 
       var dateTd = document.createElement("td");
+      var dateWrap = document.createElement("div");
+      dateWrap.className = "date-wrap";
       var dateInput = document.createElement("input");
       dateInput.type = "date"; dateInput.value = s.date;
-      dateInput.addEventListener("input", function () { s.date = dateInput.value; renderPreview(); });
-      dateTd.appendChild(dateInput);
+      var dayLabel = document.createElement("span");
+      dayLabel.className = "day-label";
+      dayLabel.textContent = dayAbbrev(s.date);
+      dateInput.addEventListener("input", function () {
+        s.date = dateInput.value;
+        dayLabel.textContent = dayAbbrev(s.date);
+        renderPreview();
+      });
+      dateWrap.appendChild(dateInput);
+      dateWrap.appendChild(dayLabel);
+      dateTd.appendChild(dateWrap);
       tr.appendChild(dateTd);
 
       var spTd = document.createElement("td");
@@ -534,7 +559,7 @@
       apTd.appendChild(apSel);
       tr.appendChild(apTd);
 
-      tr.appendChild(ynCell(s, "accommodations"));
+      tr.appendChild(accommodationsCell(s));
       tr.appendChild(ynCell(s, "makeup"));
 
       var tsTd = document.createElement("td");
@@ -568,6 +593,46 @@
     });
   }
 
+  function accommodationsCell(s) {
+    var td = document.createElement("td");
+    var cellWrap = document.createElement("div");
+    cellWrap.className = "accommodations-cell";
+
+    var wrap = document.createElement("div");
+    wrap.className = "yn-toggle";
+    var noBtn = document.createElement("button");
+    noBtn.type = "button"; noBtn.textContent = "No";
+    var yesBtn = document.createElement("button");
+    yesBtn.type = "button"; yesBtn.textContent = "Yes";
+
+    var extraSel = document.createElement("select");
+    extraSel.className = "extra-time-sel";
+    extraSel.innerHTML = '<option value="1.5x">1.5x time</option><option value="2x">2x time</option>';
+    extraSel.value = s.extraTime || "1.5x";
+    extraSel.addEventListener("change", function () { s.extraTime = extraSel.value; renderPreview(); });
+
+    function refresh() {
+      noBtn.className = s.accommodations ? "" : "active-no";
+      yesBtn.className = s.accommodations ? "active-yes" : "";
+      extraSel.hidden = !s.accommodations;
+    }
+    noBtn.addEventListener("click", function () { s.accommodations = false; refresh(); renderPreview(); });
+    yesBtn.addEventListener("click", function () {
+      s.accommodations = true;
+      if (!s.extraTime) s.extraTime = "1.5x";
+      refresh();
+      renderPreview();
+    });
+    refresh();
+
+    wrap.appendChild(noBtn);
+    wrap.appendChild(yesBtn);
+    cellWrap.appendChild(wrap);
+    cellWrap.appendChild(extraSel);
+    td.appendChild(cellWrap);
+    return td;
+  }
+
   function ynCell(s, key) {
     var td = document.createElement("td");
     var wrap = document.createElement("div");
@@ -598,6 +663,13 @@
   // -----------------------------------------------------------------
   // Coversheet rendering (shared by live preview + print)
   // -----------------------------------------------------------------
+  function dayAbbrev(iso) {
+    if (!iso) return "";
+    var d = new Date(iso + "T00:00:00");
+    if (isNaN(d)) return "";
+    return d.toLocaleDateString(undefined, { weekday: "short" });
+  }
+
   function fmtDate(iso) {
     if (!iso) return "";
     var d = new Date(iso + "T00:00:00");
@@ -619,7 +691,7 @@
     sheet.innerHTML =
       '<div class="sheet-head"><span class="school">Horace Mann Testing Center</span><span class="doc-label">Exam Coversheet</span></div>' +
       '<div class="sf-grid2">' +
-        sfRow("Accommodations", s.accommodations ? "Yes" : "No") +
+        sfRow("Accommodations", s.accommodations ? "Yes (" + esc(s.extraTime || "1.5x") + " time)" : "No") +
         sfRow("Same-day make-up exam", s.makeup ? "Yes" : "No") +
       '</div>' +
       sfRow("Student&rsquo;s name", esc(s.name) || "&nbsp;") +
@@ -674,22 +746,36 @@
   var studentWordEl = document.getElementById("studentWord");
   var pageWordEl = document.getElementById("pageWord");
   var bottomCountLabel = document.getElementById("bottomCountLabel");
+  var sheetNav = document.querySelector(".sheet-nav");
+  var sheetPager = document.getElementById("sheetPager");
+  var prevSheetBtn = document.getElementById("prevSheetBtn");
+  var nextSheetBtn = document.getElementById("nextSheetBtn");
+  var previewIndex = 0;
+
+  prevSheetBtn.addEventListener("click", function () { previewIndex--; renderPreview(); });
+  nextSheetBtn.addEventListener("click", function () { previewIndex++; renderPreview(); });
 
   function renderPreview() {
+    var n = state.students.length;
+    previewIndex = Math.max(0, Math.min(previewIndex, n - 1));
     previewStack.innerHTML = "";
-    if (!state.students.length) {
+    sheetNav.hidden = n === 0;
+    if (!n) {
       previewStack.innerHTML = '<div class="empty-note">Add a student to see their coversheet here.</div>';
     } else {
-      state.students.forEach(function (s) { previewStack.appendChild(buildSheetEl(s)); });
+      previewStack.appendChild(buildSheetEl(state.students[previewIndex]));
+      sheetPager.textContent = (previewIndex + 1) + " of " + n;
     }
+    prevSheetBtn.disabled = previewIndex <= 0;
+    nextSheetBtn.disabled = previewIndex >= n - 1;
+
     printArea.innerHTML = "";
     state.students.forEach(function (s) { printArea.appendChild(buildSheetEl(s)); });
 
-    studentCountEl.textContent = state.students.length;
-    studentWordEl.textContent = state.students.length === 1 ? "student" : "students";
-    pageWordEl.textContent = state.students.length + (state.students.length === 1 ? " page" : " pages");
-    bottomCountLabel.textContent = state.students.length + (state.students.length === 1 ? " student · " : " students · ") +
-      state.students.length + (state.students.length === 1 ? " page" : " pages");
+    studentCountEl.textContent = n;
+    studentWordEl.textContent = n === 1 ? "student" : "students";
+    pageWordEl.textContent = n + (n === 1 ? " page" : " pages");
+    bottomCountLabel.textContent = n + (n === 1 ? " student · " : " students · ") + n + (n === 1 ? " page" : " pages");
   }
 
   window.addEventListener("beforeprint", function () {
