@@ -145,10 +145,18 @@
   .email-row .suffix { color: var(--ink-soft); font-size: 13px; white-space: nowrap; }
 
   .check-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
+  .check-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin-top: 2px; }
+  @media (max-width: 620px) { .check-grid-2col { grid-template-columns: 1fr; } }
   .check-row { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
   .check-row input[type="checkbox"] { width: 16px; height: 16px; flex: 0 0 auto; }
   .check-row input[type="text"] { flex: 1; }
   .check-row.disabled { color: var(--ink-faint); }
+  .check-row .hint { color: var(--ink-faint); font-size: 11.5px; }
+  .checklist-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--ink-faint); margin-bottom: 6px;
+  }
+  .optional-tag { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink-faint); }
 
   .students-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
   table.students { border-collapse: collapse; width: 100%; min-width: 980px; background: var(--surface); }
@@ -339,19 +347,27 @@
 
     <div class="panel">
       <div class="panel-title">Special instructions</div>
-      <div class="check-grid">
+      <div class="check-grid-2col">
         <label class="check-row"><input type="checkbox" id="f-si-textbook"> Use of textbook</label>
         <label class="check-row"><input type="checkbox" id="f-si-notes"> Use of notes</label>
-        <label class="check-row"><input type="checkbox" id="f-si-calc"> Use of calculator</label>
-        <label class="check-row">
-          <input type="checkbox" id="f-si-other-check"> Other:
-          <input type="text" id="f-si-other" placeholder="specify" disabled style="max-width:220px;">
-        </label>
+        <label class="check-row"><input type="checkbox" id="f-si-calc-graphing"> Graphing calculator <span class="hint">(not provided)</span></label>
+        <label class="check-row"><input type="checkbox" id="f-si-calc-scientific"> Scientific calculator <span class="hint">(not provided)</span></label>
+        <label class="check-row"><input type="checkbox" id="f-si-calc-4fn"> 4-function calculator</label>
+        <label class="check-row"><input type="checkbox" id="f-si-scrap"> Scrap paper <span class="hint">(provided)</span></label>
+        <label class="check-row"><input type="checkbox" id="f-si-bluebook"> Blue book <span class="hint">(provided)</span></label>
+        <label class="check-row"><input type="checkbox" id="f-si-refsheets"> Reference sheets <span class="hint">(specify below)</span></label>
+        <label class="check-row"><input type="checkbox" id="f-si-laptop-with"> Laptop WITH internet/spell check</label>
+        <label class="check-row"><input type="checkbox" id="f-si-laptop-without"> Laptop WITHOUT internet/spell check</label>
+        <label class="check-row"><input type="checkbox" id="f-si-other-check"> Other</label>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="f-si-additional">Additional special instructions <span class="optional-tag">(optional)</span></label>
+        <input id="f-si-additional" type="text" placeholder="leave blank if none">
       </div>
     </div>
 
     <div class="panel">
-      <div class="panel-title">Exam.net &amp; split instructions</div>
+      <div class="panel-title">Exam.net</div>
       <div class="field-grid">
         <div class="field">
           <label>Is this an Exam.net assessment?</label>
@@ -360,14 +376,34 @@
             <button type="button" data-val="yes">Yes</button>
           </div>
         </div>
+        <div class="field" id="examNameField">
+          <label for="f-examname">Exam name</label>
+          <input id="f-examname" type="text" placeholder="e.g. Chapter 5 TC">
+        </div>
         <div class="field" id="examCodeField">
-          <label for="f-examcode">Exam code</label>
+          <label for="f-examcode">Exam key</label>
           <input id="f-examcode" type="text" placeholder="e.g. AqY2Wt">
         </div>
-        <div class="field span-2">
-          <label for="f-split">Other split instructions <span style="font-weight:400; text-transform:none; letter-spacing:0; color:var(--ink-faint);">(optional)</span></label>
-          <input id="f-split" type="text" placeholder="leave blank if none">
-        </div>
+      </div>
+      <div class="check-grid" id="examNetChecklist" style="margin-top:12px;">
+        <div class="checklist-label">Did you do all of the following? (reminder only, not printed)</div>
+        <label class="check-row"><input type="checkbox" id="f-en-copy"> Created a new copy of the exam for the Testing Center</label>
+        <label class="check-row"><input type="checkbox" id="f-en-timelimit"> Made sure the time limit is turned off</label>
+        <label class="check-row"><input type="checkbox" id="f-en-coteacher"> Assigned testingcenterud@horacemann.org as a co-teacher</label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Split instructions</div>
+      <div class="preview-note" style="margin-bottom:10px;">For students with extended time accommodations, the default split is 45 minutes for part 1 and 23 minutes for part 2.</div>
+      <div class="check-grid">
+        <label class="check-row"><input type="checkbox" id="f-split-consecutive"> Assessment must be done in two consecutive periods only</label>
+        <label class="check-row"><input type="checkbox" id="f-split-onepage"> Deliver test one page at a time (one-sided)</label>
+        <label class="check-row"><input type="checkbox" id="f-split-noreturn"> Completed pages cannot be returned to student</label>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="f-split">Other split instructions <span class="optional-tag">(optional)</span></label>
+        <input id="f-split" type="text" placeholder="leave blank if none">
       </div>
     </div>
 
@@ -385,7 +421,6 @@
               <th>Accommodations</th>
               <th>Same-day make-up</th>
               <th>Time already spent</th>
-              <th>Resume key</th>
               <th></th>
             </tr>
           </thead>
@@ -419,7 +454,7 @@
 <script>
 (function () {
   "use strict";
-  var PERIODS = ["A", "B", "Break", "C", "D", "E", "F", "G", "H"];
+  var PERIODS = ["A", "B", "Break", "C", "D", "E", "F", "G", "H", "After School"];
   var GRADES = ["9", "10", "11", "12"];
 
   function makeId() { return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -429,18 +464,24 @@
     return {
       id: makeId(), name: "", grade: "9", date: todayISO(),
       startPeriod: "A", addPeriod: "", accommodations: false, extraTime: "1.5x", makeup: false,
-      timeSpent: "0", resumeKey: ""
+      timeSpent: "0"
     };
   }
 
   var state = {
     subject: "English", kind: "Test", kindOther: "",
     timeGiven: "45", email: "", ext: "",
-    siTextbook: true, siNotes: false, siCalc: false, siOtherOn: false, siOther: "",
-    isExamNet: true, examCode: "", split: "",
+    siTextbook: true, siNotes: false,
+    siCalcGraphing: false, siCalcScientific: false, siCalc4fn: false,
+    siScrap: false, siBluebook: false, siRefSheets: false,
+    siLaptopWith: false, siLaptopWithout: false,
+    siOtherOn: false, siAdditional: "",
+    isExamNet: true, examName: "", examCode: "",
+    enCopy: false, enTimeLimit: false, enCoTeacher: false,
+    splitConsecutive: false, splitOnePage: false, splitNoReturn: false, split: "",
     students: [
       { id: makeId(), name: "Caspian C.", grade: "9", date: todayISO(), startPeriod: "A",
-        addPeriod: "", accommodations: false, extraTime: "1.5x", makeup: false, timeSpent: "0", resumeKey: "" }
+        addPeriod: "", accommodations: false, extraTime: "1.5x", makeup: false, timeSpent: "0" }
     ]
   };
 
@@ -459,15 +500,21 @@
   bindText("f-timegiven", "timeGiven");
   bindText("f-email", "email");
   bindText("f-ext", "ext");
+  bindText("f-examname", "examName");
   bindText("f-examcode", "examCode");
+  bindText("f-si-additional", "siAdditional");
   bindText("f-split", "split");
 
   var examNetToggle = document.getElementById("examNetToggle");
+  var examNameField = document.getElementById("examNameField");
   var examCodeField = document.getElementById("examCodeField");
+  var examNetChecklist = document.getElementById("examNetChecklist");
   function refreshExamNetToggle() {
     examNetToggle.querySelector('[data-val="no"]').className = state.isExamNet ? "" : "active-no";
     examNetToggle.querySelector('[data-val="yes"]').className = state.isExamNet ? "active-yes" : "";
+    examNameField.hidden = !state.isExamNet;
     examCodeField.hidden = !state.isExamNet;
+    examNetChecklist.hidden = !state.isExamNet;
   }
   examNetToggle.addEventListener("click", function (e) {
     var btn = e.target.closest("button");
@@ -498,19 +545,23 @@
   }
   wireCheck("f-si-textbook", "siTextbook");
   wireCheck("f-si-notes", "siNotes");
-  wireCheck("f-si-calc", "siCalc");
+  wireCheck("f-si-calc-graphing", "siCalcGraphing");
+  wireCheck("f-si-calc-scientific", "siCalcScientific");
+  wireCheck("f-si-calc-4fn", "siCalc4fn");
+  wireCheck("f-si-scrap", "siScrap");
+  wireCheck("f-si-bluebook", "siBluebook");
+  wireCheck("f-si-refsheets", "siRefSheets");
+  wireCheck("f-si-laptop-with", "siLaptopWith");
+  wireCheck("f-si-laptop-without", "siLaptopWithout");
+  wireCheck("f-si-other-check", "siOtherOn");
 
-  var siOtherCheck = document.getElementById("f-si-other-check");
-  var siOtherText = document.getElementById("f-si-other");
-  siOtherCheck.checked = state.siOtherOn;
-  siOtherText.disabled = !state.siOtherOn;
-  siOtherCheck.addEventListener("change", function () {
-    state.siOtherOn = siOtherCheck.checked;
-    siOtherText.disabled = !state.siOtherOn;
-    renderPreview();
-  });
-  siOtherText.value = state.siOther;
-  siOtherText.addEventListener("input", function () { state.siOther = siOtherText.value; renderPreview(); });
+  wireCheck("f-en-copy", "enCopy");
+  wireCheck("f-en-timelimit", "enTimeLimit");
+  wireCheck("f-en-coteacher", "enCoTeacher");
+
+  wireCheck("f-split-consecutive", "splitConsecutive");
+  wireCheck("f-split-onepage", "splitOnePage");
+  wireCheck("f-split-noreturn", "splitNoReturn");
 
   // -----------------------------------------------------------------
   // Students table
@@ -594,13 +645,6 @@
       tsInput.addEventListener("input", function () { s.timeSpent = tsInput.value; renderPreview(); });
       tsTd.appendChild(tsInput);
       tr.appendChild(tsTd);
-
-      var rkTd = document.createElement("td");
-      var rkInput = document.createElement("input");
-      rkInput.type = "text"; rkInput.placeholder = "if needed"; rkInput.value = s.resumeKey; rkInput.style.width = "84px";
-      rkInput.addEventListener("input", function () { s.resumeKey = rkInput.value; renderPreview(); });
-      rkTd.appendChild(rkInput);
-      tr.appendChild(rkTd);
 
       var rmTd = document.createElement("td");
       rmTd.className = "remove-cell";
@@ -791,9 +835,22 @@
     var checks = [];
     if (state.siTextbook) checks.push("☑ Use of textbook");
     if (state.siNotes) checks.push("☑ Use of notes");
-    if (state.siCalc) checks.push("☑ Use of calculator");
-    if (state.siOtherOn && state.siOther.trim()) checks.push("☑ Other: " + state.siOther.trim());
+    if (state.siCalcGraphing) checks.push("☑ Graphing calculator");
+    if (state.siCalcScientific) checks.push("☑ Scientific calculator");
+    if (state.siCalc4fn) checks.push("☑ 4-function calculator");
+    if (state.siScrap) checks.push("☑ Scrap paper");
+    if (state.siBluebook) checks.push("☑ Blue book");
+    if (state.siRefSheets) checks.push("☑ Reference sheets");
+    if (state.siLaptopWith) checks.push("☑ Laptop WITH internet/spell check");
+    if (state.siLaptopWithout) checks.push("☑ Laptop WITHOUT internet/spell check");
+    if (state.siOtherOn) checks.push("☑ Other");
     if (!checks.length) checks.push("—");
+
+    var splitChecks = [];
+    if (state.splitConsecutive) splitChecks.push("☑ Two consecutive periods only");
+    if (state.splitOnePage) splitChecks.push("☑ Deliver one page at a time");
+    if (state.splitNoReturn) splitChecks.push("☑ Completed pages not returned to student");
+    if (!splitChecks.length) splitChecks.push("—");
 
     var sheet = document.createElement("div");
     sheet.className = "sheet";
@@ -823,11 +880,13 @@
       '<hr class="sf-rule">' +
       '<div class="sf-section-label">Special instructions</div>' +
       '<div class="sf-checks">' + checks.map(function (c) { return "<span>" + esc(c) + "</span>"; }).join("") + '</div>' +
+      (state.siAdditional.trim() ? sfRow("Additional", esc(state.siAdditional)) : "") +
       '<div class="sf-section-label" style="margin-top:4px;">Exam.net assessment</div>' +
       sfRow("Is this an Exam.net assessment?", state.isExamNet ? "Yes" : "No") +
-      (state.isExamNet ? sfRow("Exam code", esc(state.examCode) || "&nbsp;") + sfRow("Resume key", esc(s.resumeKey) || "&nbsp;") : "") +
+      (state.isExamNet ? sfRow("Exam name", esc(state.examName) || "&nbsp;") + sfRow("Exam key", esc(state.examCode) || "&nbsp;") : "") +
       '<hr class="sf-rule">' +
       '<div class="sf-section-label">Split instructions</div>' +
+      '<div class="sf-checks">' + splitChecks.map(function (c) { return "<span>" + esc(c) + "</span>"; }).join("") + '</div>' +
       sfRow("Other split instructions", esc(state.split) || "&nbsp;") +
       '<div class="sf-proctor">' +
         '<div class="plabel">Proctor use only</div>' +
