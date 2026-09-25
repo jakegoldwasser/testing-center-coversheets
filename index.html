@@ -1227,7 +1227,7 @@
   // Things the form requires that this page can't fill in, flagged
   // before the teacher starts opening tabs.
   function googleFormWarnings() {
-    var w = [];
+    var w = ["Tick \u201CRecord my email\u201D at the top of the form. Google won't let you continue until you do, and it can't be pre-filled."];
     if (!state.ext.trim()) w.push("Your extension is blank. The form requires it.");
     if (!state.subject.trim()) w.push("Subject is blank. The form requires it.");
     if (!String(state.timeGiven).trim()) w.push("Time given to class is blank. The form requires it.");
