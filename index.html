@@ -337,7 +337,7 @@
     <p>This is one self-contained page. The form, the coversheet layout, and the printing logic are all plain HTML, CSS, and JavaScript running in your browser tab. There's no server, so nothing you type is sent anywhere. "Print all coversheets" just opens your browser's own print dialog, which is also how "Save as PDF" works without this tool generating a PDF itself.</p>
 
     <h3>Student data</h3>
-    <p>Everything you enter lives only in this tab's memory while it's open. Nothing is uploaded, logged, or retained. Reload or close the tab and it's gone. The same applies to an attached exam PDF: it's read and rendered by a library (pdf.js) running in your browser, never sent anywhere.</p>
+    <p>Everything you enter about students lives only in this tab's memory while it's open. Nothing is uploaded, logged, or retained. Reload or close the tab and it's gone. The one exception is your own teacher email and extension, which this browser remembers so you don't retype them. The same applies to an attached exam PDF: it's read and rendered by a library (pdf.js) running in your browser, never sent anywhere.</p>
 
     <h3>Filling in the Test Center's Google Form</h3>
     <p>"Fill Google Form" builds one link per student to the Test Center's official cover-sheet form, with that student's answers already filled in. Each link opens the real form in a new tab so you can check it, attach the exam, and press Submit yourself. Nothing reaches Google until you submit, and this page never submits anything on its own.</p>
@@ -572,8 +572,42 @@
   }
   bindText("f-subject", "subject");
   bindText("f-timegiven", "timeGiven");
-  bindText("f-email", "email");
-  bindText("f-ext", "ext");
+  // Teacher email + extension: remembered in this browser (they're the
+  // teacher's own details, never student data) so they're already filled
+  // in next time. A known teacher's email also fills in their extension.
+  // The storage calls are wrapped because storage can be blocked (private
+  // windows, cleared site data); the page just starts blank then.
+  var KNOWN_TEACHER_EXTENSIONS = { "jake_goldwasser": "3983" };
+  var TEACHER_KEY = "tc-coversheets-teacher";
+  try {
+    var savedTeacher = JSON.parse(localStorage.getItem(TEACHER_KEY) || "null");
+    if (savedTeacher) { state.email = savedTeacher.email || ""; state.ext = savedTeacher.ext || ""; }
+  } catch (e) {}
+  function saveTeacher() {
+    try { localStorage.setItem(TEACHER_KEY, JSON.stringify({ email: state.email, ext: state.ext })); } catch (e) {}
+  }
+
+  var emailEl = document.getElementById("f-email");
+  var extEl = document.getElementById("f-ext");
+  var extAutoFilled = false; // only overwrite an extension we filled in ourselves
+  emailEl.value = state.email;
+  extEl.value = state.ext;
+  emailEl.addEventListener("input", function () {
+    state.email = emailEl.value;
+    var known = KNOWN_TEACHER_EXTENSIONS[emailEl.value.trim().toLowerCase().replace(/@horacemann\.org$/, "")];
+    if (known && (!state.ext.trim() || extAutoFilled)) {
+      state.ext = extEl.value = known;
+      extAutoFilled = true;
+    }
+    saveTeacher();
+    renderPreview();
+  });
+  extEl.addEventListener("input", function () {
+    state.ext = extEl.value;
+    extAutoFilled = false;
+    saveTeacher();
+    renderPreview();
+  });
   bindText("f-examname", "examName");
   bindText("f-examcode", "examCode");
   bindText("f-si-additional", "siAdditional");
