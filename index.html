@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Testing Center Coversheets</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -99,20 +100,35 @@
   header.top .count { font-size: 12.5px; color: var(--ink-soft); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   header.top .count strong { color: var(--ink); font-family: "IBM Plex Mono", monospace; }
 
-  dialog#howItWorksDialog {
+  dialog.modal {
     max-width: 540px; width: 92vw; border: 1px solid var(--line); border-radius: 12px; padding: 0;
     background: var(--surface); color: var(--ink); box-shadow: 0 16px 48px var(--shadow);
   }
-  dialog#howItWorksDialog::backdrop { background: rgba(20, 18, 16, 0.5); }
-  dialog#howItWorksDialog .modal-inner { padding: 22px 26px 26px; }
-  dialog#howItWorksDialog .modal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-  dialog#howItWorksDialog h2 { font-size: 18px; }
-  dialog#howItWorksDialog h3 {
+  dialog.modal::backdrop { background: rgba(20, 18, 16, 0.5); }
+  dialog.modal .modal-inner { padding: 22px 26px 26px; }
+  dialog.modal .modal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  dialog.modal h2 { font-size: 18px; }
+  dialog.modal h3 {
     font-family: "IBM Plex Sans", sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--maroon); margin: 18px 0 6px;
   }
-  dialog#howItWorksDialog p { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: 0; }
-  dialog#howItWorksDialog a { color: var(--maroon); }
+  dialog.modal p { font-size: 13px; color: var(--ink-soft); line-height: 1.6; margin: 0; }
+  dialog.modal a { color: var(--maroon); }
+
+  .gf-list { list-style: none; margin: 14px 0 0; padding: 0; border: 1px solid var(--line); border-radius: 8px; }
+  .gf-list li { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  .gf-list li:last-child { border-bottom: none; }
+  .gf-list .gf-name { flex: 1; min-width: 0; font-weight: 600; }
+  .gf-list .gf-meta { font-size: 11.5px; color: var(--ink-faint); font-weight: 400; }
+  .gf-list li.done .gf-name { color: var(--ink-faint); }
+  .gf-status { font-size: 11.5px; font-weight: 700; color: var(--ink-faint); white-space: nowrap; }
+  .gf-list li.done .gf-status { color: var(--maroon); }
+  .gf-warn {
+    margin-top: 12px; font-size: 12.5px; color: var(--ink); background: var(--attn-soft);
+    border: 1px solid var(--attn); border-radius: 8px; padding: 9px 12px;
+  }
+  .gf-warn ul { margin: 4px 0 0; padding-left: 18px; }
+  .gf-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 480px); gap: 0; align-items: start; }
   @media (max-width: 980px) { .layout { grid-template-columns: 1fr; } }
@@ -268,7 +284,7 @@
        .sheet-nav), which missed #previewStack itself -- the one sheet
        currently shown on screen -- and let it print small and
        unstyled ahead of the real, correctly-sized pages. */
-    header.top, .formcol, .previewcol, dialog#howItWorksDialog, .bottom-bar { display: none !important; }
+    header.top, .formcol, .previewcol, dialog.modal, .bottom-bar { display: none !important; }
     body, .layout { background: #fff !important; display: block !important; padding: 0 !important; margin: 0 !important; border: none !important; }
     #printArea { display: block !important; }
     /* Rather than hand-tune a separate print font-size (which drifts
@@ -310,7 +326,7 @@
   </div>
 </header>
 
-<dialog id="howItWorksDialog">
+<dialog id="howItWorksDialog" class="modal">
   <div class="modal-inner">
     <div class="modal-head">
       <h2>How this works</h2>
@@ -323,8 +339,27 @@
     <h3>Student data</h3>
     <p>Everything you enter lives only in this tab's memory while it's open. Nothing is uploaded, logged, or retained. Reload or close the tab and it's gone. The same applies to an attached exam PDF: it's read and rendered by a library (pdf.js) running in your browser, never sent anywhere.</p>
 
+    <h3>Filling in the Test Center's Google Form</h3>
+    <p>"Fill Google Form" builds one link per student to the Test Center's official cover-sheet form, with that student's answers already filled in. Each link opens the real form in a new tab so you can check it, attach the exam, and press Submit yourself. Nothing reaches Google until you submit, and this page never submits anything on its own.</p>
+
     <h3>Source code</h3>
     <p>The code is one file, published on GitHub: <a id="sourceRepoLink" href="https://github.com/jakegoldwasser/testing-center-coversheets" target="_blank" rel="noopener">github.com/jakegoldwasser/testing-center-coversheets</a>. It also runs live from that repo via GitHub Pages: <a href="https://jakegoldwasser.github.io/testing-center-coversheets/" target="_blank" rel="noopener">jakegoldwasser.github.io/testing-center-coversheets</a>.</p>
+  </div>
+</dialog>
+
+<dialog id="googleFormDialog" class="modal">
+  <div class="modal-inner">
+    <div class="modal-head">
+      <h2>Fill the Test Center Google Form</h2>
+      <button class="btn btn-ghost btn-sm" id="closeGoogleForm" type="button" aria-label="Close">✕</button>
+    </div>
+    <p style="margin-top:8px;">The Test Center's form takes one student per submission. Open each student below: the form comes up in a new tab with their answers already filled in. Click through its pages, attach the exam PDF on the last page, and press Submit. Then come back here for the next student.</p>
+    <div id="gfWarn" class="gf-warn" hidden></div>
+    <ul class="gf-list" id="gfList"></ul>
+    <div class="gf-actions">
+      <button class="btn" id="gfDoneBtn" type="button">Done</button>
+      <button class="btn btn-primary" id="gfNextBtn" type="button">Open next student</button>
+    </div>
   </div>
 </dialog>
 
@@ -484,6 +519,7 @@
 <div class="bottom-bar">
   <span id="bottomCountLabel" class="num">0 students · 0 pages</span>
   <button class="btn btn-primary btn-lg" id="printAllBtn" type="button">Print all coversheets</button>
+  <button class="btn btn-lg" id="googleFormBtn" type="button">Fill Google Form…</button>
 </div>
 
 <div id="printArea"></div>
@@ -1091,6 +1127,179 @@
   document.getElementById("printAllBtn").addEventListener("click", function () {
     if (!state.students.length) return;
     window.print();
+  });
+
+  // -----------------------------------------------------------------
+  // Fill the Test Center's Google Form -- one pre-filled link per
+  // student. Google Forms accepts answers as entry.<id>=<value> query
+  // params on the viewform URL; the IDs and option wording below were
+  // read from the live "Test Center Cover Sheet 2026-2027" form. If the
+  // Test Center publishes a new form (e.g. next school year), these all
+  // need re-reading from it. Nothing is submitted from here: the teacher
+  // reviews each tab, attaches the exam (file uploads can't be
+  // pre-filled), and presses Submit on Google's own page.
+  // -----------------------------------------------------------------
+  var GFORM = {
+    url: "https://docs.google.com/forms/d/e/1FAIpQLScUeIfIaUg7jKO4DvGHAKoZK8IUh1lTEjS8MYnXDijhOpAyBg/viewform",
+    ext: "entry.180975757",
+    subject: "entry.2034376148",
+    name: "entry.593428612",
+    grade: "entry.1493538444",
+    kind: "entry.703944911",
+    accommodations: "entry.253652182",
+    makeup: "entry.2088976148",
+    timeGiven: "entry.1485761474",
+    date: "entry.59484436",
+    startPeriod: "entry.1364999056",
+    addPeriod: "entry.108974738",
+    timeSpent: "entry.1021837161",
+    examNet: "entry.303897123",
+    examName: "entry.410732839",
+    examKey: "entry.1141458357",
+    examNetChecklist: "entry.1494929515",
+    special: "entry.1195839393",
+    specialAdditional: "entry.1177137550",
+    split: "entry.787661330",
+    splitAdditional: "entry.59048015"
+  };
+  var GFORM_PERIOD = { "Break": "Break (10:00 - 10:20am)", "After School": "After School (must be complete by 3:55pm)" };
+  var GFORM_KINDS = ["Test", "Quiz"];
+
+  function googleFormUrl(s) {
+    var q = [["usp", "pp_url"]];
+    function add(key, val) { if (val != null && String(val).trim() !== "") q.push([key, String(val).trim()]); }
+    function period(p) { return GFORM_PERIOD[p] || p; }
+
+    add(GFORM.ext, state.ext);
+    add(GFORM.subject, state.subject);
+    add(GFORM.name, s.name);
+    add(GFORM.grade, s.grade ? s.grade + "th Grade" : "");
+    if (GFORM_KINDS.indexOf(state.kind) !== -1) add(GFORM.kind, state.kind);
+    add(GFORM.accommodations, s.accommodations ? "Yes" : "No");
+    add(GFORM.makeup, s.makeup ? "Yes" : "No");
+    add(GFORM.timeGiven, state.timeGiven);
+    add(GFORM.date, s.date);
+    add(GFORM.startPeriod, period(s.startPeriod));
+    add(GFORM.addPeriod, s.addPeriod ? period(s.addPeriod) : "");
+    add(GFORM.timeSpent, s.timeSpent);
+
+    add(GFORM.examNet, state.isExamNet ? "Yes" : "No");
+    if (state.isExamNet) {
+      add(GFORM.examName, state.examName);
+      add(GFORM.examKey, state.examCode);
+      if (state.enCopy) add(GFORM.examNetChecklist, "Create a new copy of the exam for the Testing Center?");
+      if (state.enTimeLimit) add(GFORM.examNetChecklist, "Make sure the time limit is turned off?");
+      if (state.enCoTeacher) add(GFORM.examNetChecklist, "Assign testingcenterud@horacemann.org as a co-teacher of your Testing Center exam?");
+    }
+
+    [
+      ["siTextbook", "Use of Textbook"],
+      ["siNotes", "Use of Notes"],
+      ["siCalcGraphing", "Use of Graphing Calculator (not provided by Test Center)"],
+      ["siCalcScientific", "Use of Scientific Calculator (not provided by Test Center)"],
+      ["siCalc4fn", "Use of 4-Function Calculator"],
+      ["siScrap", "Use of Scrap Paper (provided by Test Center)"],
+      ["siBluebook", "Use of Blue Book (provided by Test Center)"],
+      ["siRefSheets", 'Give test with Reference Sheets (Please specify in "special instructions" below.)'],
+      ["siLaptopWith", "Test Center Laptop WITH internet/spell check"],
+      ["siLaptopWithout", "Test Center Laptop WITHOUT internet/spell check"]
+    ].forEach(function (pair) { if (state[pair[0]]) add(GFORM.special, pair[1]); });
+    // The form's "Other" checkbox needs its own text; checking it here
+    // leaves that text box for the teacher to fill in on the form.
+    if (state.siOtherOn) add(GFORM.special, "__other_option__");
+
+    // The form has no per-student notes field, so a student's notes ride
+    // along in that student's own "additional special instructions".
+    var extra = [state.siAdditional.trim(), s.notes && s.notes.trim() ? "Note for " + (s.name.trim() || "this student") + ": " + s.notes.trim() : ""]
+      .filter(Boolean).join("\n");
+    add(GFORM.specialAdditional, extra);
+
+    if (state.splitConsecutive) add(GFORM.split, "Assessment must be done in TWO CONSECUTIVE PERIODS only.");
+    if (state.splitOnePage) add(GFORM.split, "Deliver test ONE PAGE at a time. (Pages must be one-sided).");
+    if (state.splitNoReturn) add(GFORM.split, "Completed pages CANNOT be returned to student.");
+    add(GFORM.splitAdditional, state.split);
+
+    return GFORM.url + "?" + q.map(function (kv) {
+      return encodeURIComponent(kv[0]) + "=" + encodeURIComponent(kv[1]);
+    }).join("&");
+  }
+
+  // Things the form requires that this page can't fill in, flagged
+  // before the teacher starts opening tabs.
+  function googleFormWarnings() {
+    var w = [];
+    if (!state.ext.trim()) w.push("Your extension is blank. The form requires it.");
+    if (!state.subject.trim()) w.push("Subject is blank. The form requires it.");
+    if (!String(state.timeGiven).trim()) w.push("Time given to class is blank. The form requires it.");
+    if (GFORM_KINDS.indexOf(state.kind) === -1) w.push("The form only offers Test or Quiz as the kind of assessment, so you'll pick one on the form.");
+    if (state.isExamNet && (!state.examName.trim() || !state.examCode.trim())) w.push("Exam name or exam key is blank. The form requires both for Exam.net tests.");
+    if (state.isExamNet && !(state.enCopy && state.enTimeLimit && state.enCoTeacher)) w.push("The form requires all three Exam.net checklist boxes to be checked.");
+    if (state.siOtherOn) w.push("“Other” special instruction is checked. Type what it is into the form's Other box.");
+    if (state.students.some(function (s) { return !s.name.trim(); })) w.push("At least one student has no name.");
+    w.push(state.examAttachment
+      ? "Attach " + state.examAttachment.fileName + " on the form's last page. Google doesn't let other pages pre-fill file uploads."
+      : "If you're sending the exam as a file, attach it on the form's last page.");
+    return w;
+  }
+
+  var googleFormDialog = document.getElementById("googleFormDialog");
+  var gfList = document.getElementById("gfList");
+  var gfWarn = document.getElementById("gfWarn");
+  var gfNextBtn = document.getElementById("gfNextBtn");
+  var gfOpened = {}; // student id -> true once their form was opened
+
+  function renderGoogleFormDialog() {
+    var warnings = googleFormWarnings();
+    gfWarn.hidden = !warnings.length;
+    gfWarn.innerHTML = "<strong>Before you submit:</strong><ul>" +
+      warnings.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>";
+
+    gfList.innerHTML = "";
+    state.students.forEach(function (s, i) {
+      var li = document.createElement("li");
+      if (gfOpened[s.id]) li.className = "done";
+      var name = document.createElement("span");
+      name.className = "gf-name";
+      name.innerHTML = esc(s.name.trim() || "Student " + (i + 1)) +
+        ' <span class="gf-meta">' + esc([dayAbbrev(s.date), s.startPeriod ? s.startPeriod + " period" : ""].filter(Boolean).join(" · ")) + "</span>";
+      var status = document.createElement("span");
+      status.className = "gf-status";
+      status.textContent = gfOpened[s.id] ? "Opened ✓" : "";
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-sm";
+      btn.textContent = gfOpened[s.id] ? "Open again" : "Open form";
+      btn.addEventListener("click", function () { openGoogleForm(s); });
+      li.appendChild(name);
+      li.appendChild(status);
+      li.appendChild(btn);
+      gfList.appendChild(li);
+    });
+
+    var next = state.students.filter(function (s) { return !gfOpened[s.id]; })[0];
+    gfNextBtn.disabled = !next;
+    gfNextBtn.textContent = next ? "Open next: " + (next.name.trim() || "unnamed student") : "All students opened";
+  }
+
+  function openGoogleForm(s) {
+    window.open(googleFormUrl(s), "_blank", "noopener");
+    gfOpened[s.id] = true;
+    renderGoogleFormDialog();
+  }
+
+  document.getElementById("googleFormBtn").addEventListener("click", function () {
+    if (!state.students.length) return;
+    renderGoogleFormDialog();
+    googleFormDialog.showModal();
+  });
+  gfNextBtn.addEventListener("click", function () {
+    var next = state.students.filter(function (s) { return !gfOpened[s.id]; })[0];
+    if (next) openGoogleForm(next);
+  });
+  document.getElementById("closeGoogleForm").addEventListener("click", function () { googleFormDialog.close(); });
+  document.getElementById("gfDoneBtn").addEventListener("click", function () { googleFormDialog.close(); });
+  googleFormDialog.addEventListener("click", function (e) {
+    if (e.target === googleFormDialog) googleFormDialog.close(); // click on backdrop
   });
 
   var howItWorksDialog = document.getElementById("howItWorksDialog");
