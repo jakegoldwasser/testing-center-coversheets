@@ -354,6 +354,7 @@
       <button class="btn btn-ghost btn-sm" id="closeGoogleForm" type="button" aria-label="Close">✕</button>
     </div>
     <p style="margin-top:8px;">The Test Center's form takes one student per submission. Open each student below: the form comes up in a new tab with their answers already filled in. Click through its pages, attach the exam PDF on the last page, and press Submit. Then come back here for the next student.</p>
+    <p style="margin-top:8px;"><strong>Submit each student's form before opening the next.</strong> Google saves an unfinished form as a draft, and that draft replaces the next student's pre-filled answers. If a form opens showing the wrong student, click <em>Clear form</em> at the bottom of it, then open that student's link here again.</p>
     <div id="gfWarn" class="gf-warn" hidden></div>
     <ul class="gf-list" id="gfList"></ul>
     <div class="gf-actions">
@@ -378,13 +379,7 @@
           <select id="f-kind">
             <option>Test</option>
             <option>Quiz</option>
-            <option>Essay</option>
-            <option>Other</option>
           </select>
-        </div>
-        <div class="field" id="f-kind-other-wrap" hidden>
-          <label for="f-kind-other">Specify assessment type</label>
-          <input id="f-kind-other" type="text" placeholder="e.g. Presentation">
         </div>
         <div class="field">
           <label for="f-timegiven">Time given to class (minutes)</label>
@@ -417,7 +412,11 @@
         <label class="check-row"><input type="checkbox" id="f-si-refsheets"> Reference sheets <span class="hint">(specify below)</span></label>
         <label class="check-row"><input type="checkbox" id="f-si-laptop-with"> Laptop WITH internet/spell check</label>
         <label class="check-row"><input type="checkbox" id="f-si-laptop-without"> Laptop WITHOUT internet/spell check</label>
-        <label class="check-row"><input type="checkbox" id="f-si-other-check"> Other</label>
+        <label class="check-row"><input type="checkbox" id="f-si-other-check"> Other:</label>
+      </div>
+      <div class="field" id="f-si-other-wrap" style="margin-top:8px;" hidden>
+        <label for="f-si-other-text">Other special instruction</label>
+        <input id="f-si-other-text" type="text" placeholder="e.g. Periodic table provided">
       </div>
       <div class="field" style="margin-top:12px;">
         <label for="f-si-additional">Additional special instructions <span class="optional-tag">(optional)</span></label>
@@ -542,13 +541,13 @@
   }
 
   var state = {
-    subject: "English", kind: "Test", kindOther: "",
+    subject: "English", kind: "Test",
     timeGiven: "45", email: "", ext: "",
     siTextbook: true, siNotes: false,
     siCalcGraphing: false, siCalcScientific: false, siCalc4fn: false,
     siScrap: false, siBluebook: false, siRefSheets: false,
     siLaptopWith: false, siLaptopWithout: false,
-    siOtherOn: false, siAdditional: "",
+    siOtherOn: false, siOtherText: "", siAdditional: "",
     isExamNet: true, examName: "", examCode: "",
     enCopy: false, enTimeLimit: false, enCoTeacher: false,
     splitConsecutive: false, splitOnePage: false, splitNoReturn: false, split: "",
@@ -634,17 +633,11 @@
   refreshExamNetToggle();
 
   var kindEl = document.getElementById("f-kind");
-  var kindOtherWrap = document.getElementById("f-kind-other-wrap");
-  var kindOtherEl = document.getElementById("f-kind-other");
   kindEl.value = state.kind;
-  kindOtherWrap.hidden = state.kind !== "Other";
   kindEl.addEventListener("change", function () {
     state.kind = kindEl.value;
-    kindOtherWrap.hidden = state.kind !== "Other";
     renderPreview();
   });
-  kindOtherEl.value = state.kindOther;
-  kindOtherEl.addEventListener("input", function () { state.kindOther = kindOtherEl.value; renderPreview(); });
 
   function wireCheck(id, key) {
     var el = document.getElementById(id);
@@ -662,6 +655,12 @@
   wireCheck("f-si-laptop-with", "siLaptopWith");
   wireCheck("f-si-laptop-without", "siLaptopWithout");
   wireCheck("f-si-other-check", "siOtherOn");
+  bindText("f-si-other-text", "siOtherText");
+  var siOtherCheck = document.getElementById("f-si-other-check");
+  var siOtherWrap = document.getElementById("f-si-other-wrap");
+  function refreshSiOther() { siOtherWrap.hidden = !state.siOtherOn; }
+  siOtherCheck.addEventListener("change", refreshSiOther);
+  refreshSiOther();
 
   wireCheck("f-en-copy", "enCopy");
   wireCheck("f-en-timelimit", "enTimeLimit");
@@ -997,7 +996,6 @@
   }
 
   function buildSheetEl(s) {
-    var kindLabel = state.kind === "Other" ? (state.kindOther || "Other") : state.kind;
     var checks = [];
     if (state.siTextbook) checks.push("☑ Use of textbook");
     if (state.siNotes) checks.push("☑ Use of notes");
@@ -1009,7 +1007,7 @@
     if (state.siRefSheets) checks.push("☑ Reference sheets");
     if (state.siLaptopWith) checks.push("☑ Laptop WITH internet/spell check");
     if (state.siLaptopWithout) checks.push("☑ Laptop WITHOUT internet/spell check");
-    if (state.siOtherOn) checks.push("☑ Other");
+    if (state.siOtherOn) checks.push("☑ Other" + (state.siOtherText.trim() ? ": " + state.siOtherText.trim() : ""));
     if (!checks.length) checks.push("—");
 
     var splitChecks = [];
@@ -1039,7 +1037,7 @@
       '<div class="sf-warn">Students must take assessments during assigned period(s) only</div>' +
       '<hr class="sf-rule">' +
       sfRow("Subject", esc(state.subject) || "&nbsp;") +
-      sfRow("Kind of assessment", esc(kindLabel)) +
+      sfRow("Kind of assessment", esc(state.kind)) +
       sfRow("Time given to class", state.timeGiven ? state.timeGiven + " min" : "&nbsp;") +
       sfRow("Teacher email", (esc(state.email) || "&nbsp;") + "<span class=\"num\">" + (state.email ? "@horacemann.org" : "") + "</span>") +
       sfRow("Teacher extension", esc(state.ext) || "&nbsp;") +
@@ -1197,7 +1195,6 @@
     splitAdditional: "entry.59048015"
   };
   var GFORM_PERIOD = { "Break": "Break (10:00 - 10:20am)", "After School": "After School (must be complete by 3:55pm)" };
-  var GFORM_KINDS = ["Test", "Quiz"];
 
   function googleFormUrl(s) {
     var q = [["usp", "pp_url"]];
@@ -1208,7 +1205,7 @@
     add(GFORM.subject, state.subject);
     add(GFORM.name, s.name);
     add(GFORM.grade, s.grade ? s.grade + "th Grade" : "");
-    if (GFORM_KINDS.indexOf(state.kind) !== -1) add(GFORM.kind, state.kind);
+    add(GFORM.kind, state.kind);
     add(GFORM.accommodations, s.accommodations ? "Yes" : "No");
     add(GFORM.makeup, s.makeup ? "Yes" : "No");
     add(GFORM.timeGiven, state.timeGiven);
@@ -1238,9 +1235,10 @@
       ["siLaptopWith", "Test Center Laptop WITH internet/spell check"],
       ["siLaptopWithout", "Test Center Laptop WITHOUT internet/spell check"]
     ].forEach(function (pair) { if (state[pair[0]]) add(GFORM.special, pair[1]); });
-    // The form's "Other" checkbox needs its own text; checking it here
-    // leaves that text box for the teacher to fill in on the form.
-    if (state.siOtherOn) add(GFORM.special, "__other_option__");
+    if (state.siOtherOn) {
+      add(GFORM.special, "__other_option__");
+      add(GFORM.special + ".other_option_response", state.siOtherText);
+    }
 
     // The form has no per-student notes field, so a student's notes ride
     // along in that student's own "additional special instructions".
@@ -1265,10 +1263,9 @@
     if (!state.ext.trim()) w.push("Your extension is blank. The form requires it.");
     if (!state.subject.trim()) w.push("Subject is blank. The form requires it.");
     if (!String(state.timeGiven).trim()) w.push("Time given to class is blank. The form requires it.");
-    if (GFORM_KINDS.indexOf(state.kind) === -1) w.push("The form only offers Test or Quiz as the kind of assessment, so you'll pick one on the form.");
     if (state.isExamNet && (!state.examName.trim() || !state.examCode.trim())) w.push("Exam name or exam key is blank. The form requires both for Exam.net tests.");
     if (state.isExamNet && !(state.enCopy && state.enTimeLimit && state.enCoTeacher)) w.push("The form requires all three Exam.net checklist boxes to be checked.");
-    if (state.siOtherOn) w.push("“Other” special instruction is checked. Type what it is into the form's Other box.");
+    if (state.siOtherOn && !state.siOtherText.trim()) w.push("“Other” special instruction is checked but blank. The form needs text for it.");
     if (state.students.some(function (s) { return !s.name.trim(); })) w.push("At least one student has no name.");
     w.push(state.examAttachment
       ? "Attach " + state.examAttachment.fileName + " on the form's last page. Google doesn't let other pages pre-fill file uploads."
